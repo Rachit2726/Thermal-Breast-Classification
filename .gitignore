@@ -1,11 +1,10 @@
-# Virtual environment
-sd_env/
+# Virtual environments
 venv/
 venv311/
 .venv/
-.env/
+sd_env/
 
-# Python
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -18,21 +17,9 @@ build/
 .idea/
 *.swp
 
-# Data (too large for git)
-raw_data/
-synthetic_data/
-synthetic_data1/
-final_dataset/
-fid_eval/
-
-# Models (too large for git)
-*.h5
-*.keras
-models/*.keras
-
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-logs/
+# Models (too large for GitHub — download separately)
+models/
