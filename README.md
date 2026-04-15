@@ -1,173 +1,115 @@
-# 🩺 Thermal Breast Cancer Classification using Ensemble CNNs with Synthetic Data Augmentation
+# 🩺 Thermal Breast Cancer Classification
 
-> **Final Year B.Tech Project**
->
-> A deep learning pipeline that classifies breast thermal (infrared) images as **Benign** or **Malignant** using an ensemble of fine-tuned CNNs (ResNet50, EfficientNetB0, MobileNetV2), augmented with Stable Diffusion-generated synthetic data.
+An ensemble deep learning pipeline that classifies breast thermal (infrared) images as **Benign** or **Malignant** using fine-tuned ResNet50, EfficientNetB0, and MobileNetV2, augmented with Stable Diffusion-generated synthetic data.
 
 ---
 
-## 📁 Project Structure
+## 📋 Prerequisites
 
-```
-Thermal breast classification/
-│
-├── config/
-│   └── config.yaml              # Centralized project configuration
-│
-├── src/
-│   ├── __init__.py
-│   ├── config_loader.py          # YAML config loader utility
-│   ├── preprocess.py             # Step 1: Preprocess raw thermal images
-│   ├── generate_img.py           # Step 2: Generate synthetic images (Stable Diffusion)
-│   ├── split_and_augment.py      # Step 3: Split data into train/val/test
-│   ├── train.py                  # Step 4: Train models (ResNet50 / EfficientNet / MobileNet)
-│   ├── evaluate.py               # Step 5: Ensemble evaluation with metrics & plots
-│   ├── predict.py                # Single image prediction
-│   └── compare_models.py         # Compare individual model performances
-│
-├── app/
-│   └── app.py                    # Streamlit web app for live demo
-│
-├── raw_data/                     # Original thermal images
-│   ├── benign/
-│   └── malignant/
-│
-├── synthetic_data/               # Preprocessed images (256×256)
-│   ├── benign/
-│   └── malignant/
-│
-├── synthetic_data1/              # Stable Diffusion generated images
-│   ├── benign/
-│   └── malignant/
-│
-├── final_dataset/                # Train/Val/Test split (ready for training)
-│   ├── train/
-│   ├── val/
-│   └── test/
-│
-├── models/                       # Saved trained model weights
-├── results/                      # Evaluation outputs (plots, metrics)
-├── logs/                         # Training CSV logs
-├── notebooks/                    # Jupyter notebooks (experiments)
-│
-├── requirements.txt              # Python dependencies
-├── .gitignore                    # Git ignore rules
-└── README.md                     # This file
-```
+- Python **3.10** (recommended — TensorFlow 2.13 does not support Python 3.11+)
+- `pip`
+- Git
+- ~5 GB free disk space (models + synthetic data)
+- GPU optional (CPU works, but training and Stable Diffusion generation will be slow)
 
 ---
 
-## 🧠 Models Used
+## ⚙️ Setup
 
-| Model | Type | Fine-Tuned Layers |
-|---|---|---|
-| **ResNet50** | Transfer Learning | Last 30 layers |
-| **EfficientNetB0** | Transfer Learning | Last 30 layers |
-| **MobileNetV2** | Transfer Learning | Last 30 layers |
-
-Final prediction is made by **averaging probabilities** from all 3 models (ensemble).
-
----
-
-## 📊 Evaluation Metrics
-
-- Accuracy, Precision, Recall, F1-Score
-- ROC-AUC
-- Specificity (TNR)
-- IoU (Jaccard Index)
-- Dice Coefficient
-- Matthews Correlation Coefficient (MCC)
-- Confusion Matrix & ROC Curve plots
-
----
-
-## ⚙️ Setup & Installation
-
-### Prerequisites
-
-- Python 3.9 or 3.10 (recommended)
-- pip
-- GPU recommended for training (CPU works but is slow)
-
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone <your-repo-url>
 cd "Thermal breast classification"
 ```
 
-### 2. Create Virtual Environment
+### 2. Create a virtual environment
 
+**Windows**
 ```bash
 python -m venv venv
-
-# Windows
 venv\Scripts\activate
+```
 
-# Linux/Mac
+**macOS / Linux**
+```bash
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+> You should see `(venv)` at the start of your terminal prompt once activated.
+> To deactivate at any time, run `deactivate`.
+
+### 3. Install dependencies
 
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+> ⚠️ If you have an NVIDIA GPU, replace the three `+cpu` lines in `requirements.txt` with the matching CUDA versions from https://pytorch.org/get-started/locally/ before installing.
+
 ---
 
-## 🚀 How to Run (Step by Step)
+## 🚀 Running the Pipeline
 
-> **All commands should be run from the project root directory.**
-> **All `src/` scripts should be run from inside the `src/` folder:**
+> All `src/` scripts must be run from **inside the `src/` folder**.
 
 ```bash
 cd src
 ```
 
-### Step 1 — Preprocess Raw Images
+---
 
-Converts raw thermal images to RGB, resizes to 256×256, and normalizes.
+### Step 1 — Preprocess raw images
+
+Converts raw thermal images to 256×256 RGB and normalises them.
 
 ```bash
 python preprocess.py
 ```
 
-**Input:** `raw_data/benign/`, `raw_data/malignant/`
-**Output:** `synthetic_data/benign/`, `synthetic_data/malignant/`
+| | Path |
+|---|---|
+| Input | `raw_data/benign/`, `raw_data/malignant/` |
+| Output | `synthetic_data/benign/`, `synthetic_data/malignant/` |
 
 ---
 
-### Step 2 — Generate Synthetic Images (Optional)
+### Step 2 — Generate synthetic images *(optional)*
 
-Uses Stable Diffusion img2img to generate synthetic thermal images for data augmentation.
+Uses Stable Diffusion img2img to create additional training samples.
 
 ```bash
 python generate_img.py
 ```
 
-> ⚠️ This step requires ~4GB RAM and takes significant time on CPU. Skip if you already have `synthetic_data1/` populated.
+| | Path |
+|---|---|
+| Input | `synthetic_data/` |
+| Output | `synthetic_data1/` |
 
-**Input:** `synthetic_data/`
-**Output:** `synthetic_data1/`
+> ⚠️ This step downloads the `runwayml/stable-diffusion-v1-5` model (~4 GB) on first run and is slow on CPU. Skip if `synthetic_data1/` is already populated.
 
 ---
 
-### Step 3 — Split Dataset
+### Step 3 — Split dataset
 
-Splits real + synthetic data into 70/15/15 train/val/test. Synthetic images go to train only.
+Splits real + synthetic images into 70 / 15 / 15 train / val / test. Synthetic images go to train only (no data leakage).
 
 ```bash
 python split_and_augment.py
 ```
 
-**Output:** `final_dataset/train/`, `final_dataset/val/`, `final_dataset/test/`
+| | Path |
+|---|---|
+| Output | `final_dataset/train/`, `final_dataset/val/`, `final_dataset/test/` |
 
 ---
 
-### Step 4 — Train Models
+### Step 4 — Train models
 
-Train each model individually:
+Train each architecture individually:
 
 ```bash
 python train.py --model resnet
@@ -175,38 +117,44 @@ python train.py --model efficientnet
 python train.py --model mobilenet
 ```
 
-**Output:** Trained models saved to `models/` folder, training logs to `logs/`.
+| | Path |
+|---|---|
+| Output models | `models/resnet50.keras`, `models/efficientnet.keras`, `models/mobilenet.keras` |
+| Training logs | `logs/<model>_training.csv` |
 
 ---
 
-### Step 5 — Evaluate Ensemble
+### Step 5 — Evaluate ensemble
 
-Runs ensemble evaluation on the test set and generates plots + metrics.
+Runs ensemble inference on the test set and saves all metrics and plots.
 
 ```bash
 python evaluate.py
 ```
 
-**Output (in `results/`):**
-- `confusion_matrix.png`
-- `roc_curve.png`
-- `metrics.txt`
+| Output file | Description |
+|---|---|
+| `results/confusion_matrix.png` | Confusion matrix |
+| `results/roc_curve.png` | ROC curve |
+| `results/metrics.txt` | Accuracy, AUC, MCC, Dice, IoU, Specificity |
 
 ---
 
-### Step 6 — Compare Models (Optional)
+### Step 6 — Compare individual models *(optional)*
 
-Generates a grouped bar chart comparing individual model performances.
+Generates a grouped bar chart comparing the three models side by side.
 
 ```bash
 python compare_models.py
 ```
 
-**Output:** `results/model_comparison.png`
+| | Path |
+|---|---|
+| Output | `results/model_comparison.png` |
 
 ---
 
-### Single Image Prediction
+### Single image prediction
 
 ```bash
 python predict.py --image path/to/thermal_image.jpg
@@ -214,65 +162,85 @@ python predict.py --image path/to/thermal_image.jpg
 
 ---
 
-## 🌐 Web App (Streamlit)
+## 🌐 Streamlit Web App
 
-A live demo app for presentations. Run from the **project root**:
+Run from the **project root** (not `src/`):
 
 ```bash
+cd ..          # if you are still inside src/
 streamlit run app/app.py
 ```
 
-Then open `http://localhost:8501` in your browser.
+Open `http://localhost:8501` in your browser.
 
 **Features:**
 - Upload any thermal breast image
-- See individual model predictions
-- See ensemble result with probability bar
-- Clean UI for project demo/viva
-
----
-
-## 📂 Dataset Info
-
-- **Source:** Infrared thermal breast images (IIR dataset)
-- **Classes:** Benign, Malignant
-- **Augmentation:** Stable Diffusion v1.5 (img2img) synthetic generation
-- **Split:** 70% Train / 15% Val / 15% Test
-- **Synthetic data** is added to the training set only (no data leakage)
+- Per-model prediction bars with confidence scores
+- Ensemble verdict with probability
+- GradCAM heatmaps for explainability
+- Dataset distribution chart and evaluation metrics dashboard
 
 ---
 
 ## 🔧 Configuration
 
-All hyperparameters and paths are centralized in `config/config.yaml`. Modify this file to change:
+All hyperparameters and paths live in `config/config.yaml`. Key settings:
 
-- Image sizes
-- Batch size, epochs, learning rate
-- Train/val/test split ratios
-- Model save paths
-- Stable Diffusion generation parameters
-
----
-
-## 📝 Key Highlights (For Viva)
-
-1. **Ensemble Learning** — Combines 3 architectures for robust predictions
-2. **Synthetic Data Augmentation** — Uses generative AI (Stable Diffusion) to handle class imbalance
-3. **Transfer Learning** — Fine-tunes pretrained ImageNet models on medical data
-4. **Class Weighting** — Handles imbalanced benign/malignant distribution
-5. **Threshold Tuning** — Uses 0.35 threshold (not 0.5) to prioritize recall for malignant cases
-6. **Web Application** — Streamlit app for real-time inference demo
-7. **Comprehensive Metrics** — Goes beyond accuracy with AUC, MCC, Dice, IoU, Specificity
+| Key | Default | Description |
+|---|---|---|
+| `training.epochs` | 25 | Max training epochs |
+| `training.batch_size` | 16 | Batch size |
+| `training.learning_rate` | 0.00001 | Adam LR |
+| `training.threshold` | 0.35 | Malignant decision threshold |
+| `training.fine_tune_layers` | 30 | Unfrozen layers from top |
+| `image.size` | [224, 224] | Model input size |
+| `generation.device` | cpu | `cpu` or `cuda` for Stable Diffusion |
 
 ---
 
-## 📜 License
+## 📁 Project Structure
 
-This project is for academic/educational purposes only.
+```
+Thermal breast classification/
+├── config/config.yaml          # Centralised configuration
+├── src/
+│   ├── preprocess.py           # Step 1
+│   ├── generate_img.py         # Step 2
+│   ├── split_and_augment.py    # Step 3
+│   ├── train.py                # Step 4
+│   ├── evaluate.py             # Step 5
+│   ├── compare_models.py       # Step 6
+│   ├── predict.py              # Single image inference
+│   ├── gradcam.py              # GradCAM explainability
+│   └── config_loader.py        # YAML loader
+├── app/app.py                  # Streamlit demo
+├── raw_data/                   # Original thermal images
+├── synthetic_data/             # Preprocessed 256×256 images
+├── synthetic_data1/            # Stable Diffusion outputs
+├── final_dataset/              # Train / Val / Test split
+├── models/                     # Saved .keras model weights
+├── results/                    # Plots and metrics
+├── logs/                       # CSV training logs
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## 👥 Authors
+## 🧠 Models
 
-- Final Year B.Tech Students
-- Department of Computer Science & Engineering
+| Model | Parameters | Fine-tuned Layers | Pretrained On |
+|---|---|---|---|
+| ResNet50 | ~25.6 M | Last 30 | ImageNet |
+| EfficientNetB0 | ~5.3 M | Last 30 | ImageNet |
+| MobileNetV2 | ~3.4 M | Last 30 | ImageNet |
+
+Final prediction = average of all three model probabilities (soft voting ensemble).
+
+---
+
+## ⚠️ Disclaimer
+
+For academic / research purposes only. Not a substitute for professional medical diagnosis.
+
+**Final Year B.Tech Project · Department of Computer Science & Engineering**
