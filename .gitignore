@@ -1,6 +1,8 @@
 # Virtual environment
 sd_env/
 venv/
+venv311/
+.venv/
 .env/
 
 # Python
