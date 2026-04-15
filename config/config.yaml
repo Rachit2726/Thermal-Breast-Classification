@@ -1,0 +1,50 @@
+# ============================================================
+#  Thermal Breast Cancer Classification - Project Configuration
+# ============================================================
+
+data:
+  raw_dir: "raw_data"
+  preprocessed_dir: "synthetic_data"
+  synthetic_dir: "synthetic_data1"
+  final_dir: "final_dataset"
+  classes: ["benign", "malignant"]
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+
+image:
+  size: [224, 224]
+  preprocess_size: [256, 256]
+  channels: 3
+
+training:
+  batch_size: 16
+  epochs: 25
+  learning_rate: 0.00001
+  early_stop_patience: 5
+  fine_tune_layers: 30
+  threshold: 0.35
+
+models:
+  resnet:
+    name: "ResNet50"
+    save_path: "models/resnet50.keras"
+  efficientnet:
+    name: "EfficientNetB0"
+    save_path: "models/efficientnet.keras"
+  mobilenet:
+    name: "MobileNetV2"
+    save_path: "models/mobilenet.keras"
+
+generation:
+  device: "cpu"
+  strength: 0.25
+  guidance_scale: 6.0
+  prompts:
+    benign: "medical grayscale infrared thermography image, clinical breast thermal scan, smooth symmetric heat distribution, no colors, medical imaging"
+    malignant: "medical grayscale infrared thermography image, clinical breast thermal scan, asymmetric heat distribution, localized hot regions, no colors, medical imaging"
+
+results:
+  output_dir: "results"
+  log_dir: "logs"
